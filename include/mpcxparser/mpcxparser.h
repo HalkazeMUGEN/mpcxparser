@@ -31,7 +31,7 @@
 #if defined(_MSC_VER)
 #define MPCXPARSER_PACK(declaration) __pragma(pack(push, 1)) declaration __pragma(pack(pop))
 #elif defined(__GNUC__)
-#define MPCXPARSER_PACK(declaration) statement __attribute__((__packed__))
+#define MPCXPARSER_PACK(declaration) declaration __attribute__((__packed__))
 #endif
 #endif
 
