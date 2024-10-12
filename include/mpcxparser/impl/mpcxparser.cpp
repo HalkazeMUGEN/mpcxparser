@@ -29,6 +29,7 @@
 
 #include <bit>
 #include <fstream>
+#include <limits>
 #include <stdexcept>
 #include <utility>
 
@@ -38,11 +39,58 @@ namespace internal {
 
 // C++23 の ispanstream の代替
 class SpanStreamBuf : public std::streambuf {
+ private:
+  const std::span<std::uint8_t> buf_;
+
  public:
-  SpanStreamBuf(const std::span<std::uint8_t>& span) {
+  SpanStreamBuf(const std::span<std::uint8_t>& span) : buf_{span} {
     auto begin = std::bit_cast<char*>(const_cast<std::uint8_t*>(span.data()));
     this->setg(begin, begin, begin + span.size());
   }
+
+ protected:
+  pos_type seekoff(off_type offset, std::ios_base::seekdir way, std::ios_base::openmode) override {
+    // Borrowed in part from MSVC's spanstream implementation
+    switch (way) {
+      case std::ios_base::beg:
+        if (static_cast<size_t>(offset) > buf_.size()) {
+          return pos_type{off_type{-1}};
+        }
+
+        break;
+      case std::ios_base::end: {
+        const auto baseoff = static_cast<off_type>(buf_.size());
+        if (offset > std::numeric_limits<off_type>::max() - baseoff) {
+          return pos_type{off_type{-1}};
+        }
+
+        offset += baseoff;
+        if (static_cast<size_t>(offset) > buf_.size()) {
+          return pos_type{off_type{-1}};
+        }
+      } break;
+      case std::ios_base::cur: {
+        const off_type oldoff = static_cast<off_type>(this->gptr() - this->eback());
+        const off_type oldleft = static_cast<off_type>(buf_.size() - oldoff);
+        if (offset < -oldoff || offset > oldleft) {
+          return pos_type{off_type{-1}};
+        }
+        offset += oldoff;
+      } break;
+      default:
+        return pos_type{off_type{-1}};
+    }
+
+    if (offset != 0 && !this->gptr()) {
+      return pos_type{off_type{-1}};
+    }
+
+    this->gbump(static_cast<int>(offset - (this->gptr() - this->eback())));
+
+    return pos_type{offset};
+  }
+
+  pos_type seekpos(pos_type pos, std::ios_base::openmode mode) override { return seekoff(pos, std::ios_base::beg, mode); }
 };
 
 static inline std::uint8_t getc(std::istream& is) noexcept {
@@ -278,4 +326,5 @@ MPCXPARSER_INLINE mugen::pcx::Pcx mugen::pcx::PcxParserWin::parse(const std::uin
 
 #ifndef MPCXPARSER_HEADER_ONLY
 template class mugen::pcx::PcxParser<mugen::pcx::MugenVersion::Win>;
+template mugen::pcx::Pcx mugen::pcx::PcxParserWin::parse<std::dynamic_extent>(std::span<std::uint8_t, std::dynamic_extent> mem) const;
 #endif
