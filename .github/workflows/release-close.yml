@@ -1,0 +1,29 @@
+on:
+  pull_request:
+    branches:
+      - main
+    types: [closed]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.merged == true && github.event.pull_request.head.ref == 'release'
+
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Delete release branch
+      run: gh api -X DELETE "repos/${{ github.repository }}/git/refs/heads/release"
+
+    - name: Get next tag
+      id: tag
+      run: echo "NEXT_VERSION=`gh release list | grep "Draft" | awk '{print $3}'`" >> $GITHUB_OUTPUT
+
+    - name: Release from draft
+      run: gh release edit ${{ steps.tag.outputs.NEXT_VERSION }} --draft=false
