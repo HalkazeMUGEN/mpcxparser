@@ -22,16 +22,23 @@
 #ifndef MPCXPARSER_H__
 #define MPCXPARSER_H__
 
+#include <algorithm>
+#include <array>
+#include <cstddef>
 #include <cstdint>
 #include <filesystem>
 #include <istream>
+#include <optional>
 #include <span>
+#include <stdexcept>
+#include <string>
+#include <vector>
 
 #ifndef MPCXPARSER_PACK
 #if defined(_MSC_VER)
 #define MPCXPARSER_PACK(declaration) __pragma(pack(push, 1)) declaration __pragma(pack(pop))
 #elif defined(__GNUC__)
-#define MPCXPARSER_PACK(declaration) statement __attribute__((__packed__))
+#define MPCXPARSER_PACK(declaration) declaration __attribute__((__packed__))
 #endif
 #endif
 

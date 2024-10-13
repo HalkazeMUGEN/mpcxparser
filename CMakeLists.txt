@@ -122,6 +122,9 @@ if(MPCXPARSER_BUILD_ALL OR MPCXPARSER_BUILD_TESTS OR MPCXPARSER_BUILD_TESTS_HO)
     add_executable(${PROJECT_NAME}-googletest ${MPCXPARSER_TEST_SOURCES})
     target_link_libraries(${PROJECT_NAME}-googletest mpcxparser)
     target_link_libraries(${PROJECT_NAME}-googletest gtest_main)
+    if(MSVC)
+      target_link_options(${PROJECT_NAME}-googletest PRIVATE /LTCG)
+    endif(MSVC)
     add_test(NAME test COMMAND ${PROJECT_NAME}-googletest)
 
     # Copy assets to working dir
@@ -143,5 +146,7 @@ if(MPCXPARSER_BUILD_ALL OR MPCXPARSER_BUILD_TESTS OR MPCXPARSER_BUILD_TESTS_HO)
       COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/test/assets $<TARGET_FILE_DIR:${PROJECT_NAME}_header_only-googletest>/assets
     )
   endif(MPCXPARSER_BUILD_ALL OR MPCXPARSER_BUILD_TESTS_HO)
+
+  enable_testing()
 
 endif(MPCXPARSER_BUILD_ALL OR MPCXPARSER_BUILD_TESTS OR MPCXPARSER_BUILD_TESTS_HO)
