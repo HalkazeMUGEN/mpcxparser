@@ -1,0 +1,30 @@
+name: Dummy for CI status checks
+
+on:
+  pull_request:
+    branches:
+      - "main"
+      - "develop"
+
+jobs:
+  build-and-test-win:
+    strategy:
+      matrix:
+        arch: [x86, x64]
+        variants: [debug, release]
+
+    runs-on: ubuntu-latest
+    steps:
+    - name: Always successful step
+      run: exit 0
+
+  build-and-test-linux:
+    strategy:
+      matrix:
+        arch: [x86, x64]
+        variants: [debug, release]
+
+    runs-on: ubuntu-latest
+    steps:
+    - name: Always successful step
+      run: exit 0
