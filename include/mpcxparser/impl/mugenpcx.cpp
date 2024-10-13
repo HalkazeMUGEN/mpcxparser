@@ -30,7 +30,9 @@
 #include <bit>
 #include <bitset>
 #include <fstream>
-#include <stdexcept>
+#include <ios>
+#include <memory>
+#include <ostream>
 
 namespace mugen {
 namespace pcx {
@@ -256,8 +258,8 @@ static inline void write_as_ico8(std::ostream& os,
   internal::IcoHeader icoHeader{
       .type = 1,
       .count = 1,
-      .width = width & 0xFF,
-      .height = height & 0xFF,
+      .width = static_cast<std::uint8_t>(width & 0xFF),
+      .height = static_cast<std::uint8_t>(height & 0xFF),
       .planes = 1,
       .colorDepth = 8,
       .sizeOfImage = static_cast<std::uint32_t>(sizeof(internal::BmpInfoHeader) + (256 * 4) + sizeOfXorMask + sizeOfAndMask),
@@ -325,8 +327,8 @@ static inline void write_as_ico32(std::ostream& os, std::size_t width, std::size
   internal::IcoHeader icoHeader{
       .type = 1,
       .count = 1,
-      .width = width & 0xFF,
-      .height = height & 0xFF,
+      .width = static_cast<std::uint8_t>(width & 0xFF),
+      .height = static_cast<std::uint8_t>(height & 0xFF),
       .planes = 1,
       .colorDepth = 32,
       .sizeOfImage = static_cast<std::uint32_t>(sizeof(internal::BmpInfoHeader) + (width * height * 4) + sizeOfAndMask),

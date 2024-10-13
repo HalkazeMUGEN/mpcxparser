@@ -23,10 +23,8 @@
 
 #include <mpcxparser/mpcxparser.h>
 
-#include <array>
 #include <string_view>
 #include <utility>
-#include <vector>
 
 using namespace std::string_view_literals;
 

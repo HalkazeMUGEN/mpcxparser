@@ -23,8 +23,10 @@
 
 #include <mpcxparser/mpcxparser.h>
 
+#include <bit>
+#include <fstream>
+#include <ios>
 #include <string_view>
-#include <vector>
 
 using namespace std::string_view_literals;
 
@@ -37,7 +39,7 @@ TEST(test_parse, common_parse_error) {
 }
 
 TEST(test_parse, parse_win_kfm) {
-  static constexpr std::string_view kfmpcx = "assets/good/kfm.pcx";
+  static constexpr std::string_view kfmpcx = "assets/good/kfm.pcx"sv;
 
   auto parser = mugen::pcx::PcxParserWin{};
   ASSERT_NO_THROW(parser.parse(kfmpcx));
@@ -89,7 +91,7 @@ TEST(test_parse, parse_win_kfm) {
 }
 
 TEST(test_parse, parse_win_testEGA16) {
-  static constexpr std::string_view testpcx = "assets/good/testEGA16.pcx";
+  static constexpr std::string_view testpcx = "assets/good/testEGA16.pcx"sv;
 
   auto parser = mugen::pcx::PcxParserWin{};
   ASSERT_NO_THROW(parser.parse(testpcx));
@@ -156,7 +158,7 @@ TEST(test_parse, parse_win_testEGA16) {
 }
 
 TEST(test_parse, parse_win_test256) {
-  static constexpr std::string_view testpcx = "assets/good/test256.pcx";
+  static constexpr std::string_view testpcx = "assets/good/test256.pcx"sv;
 
   auto parser = mugen::pcx::PcxParserWin{};
   ASSERT_NO_THROW(parser.parse(testpcx));
@@ -217,7 +219,7 @@ TEST(test_parse, parse_win_test256) {
 }
 
 TEST(test_parse, parse_win_test24bits) {
-  static constexpr std::string_view testpcx = "assets/good/test24bits.pcx";
+  static constexpr std::string_view testpcx = "assets/good/test24bits.pcx"sv;
 
   auto parser = mugen::pcx::PcxParserWin{};
   ASSERT_NO_THROW(parser.parse(testpcx));
@@ -331,4 +333,197 @@ TEST(test_parse, incompatible_format_win) {
 
   // width * height == 0
   EXPECT_THROW(parser.parse(sizeIs0), mugen::pcx::IncompatibleFormatError);
+}
+
+TEST(test_parse, parse_from_stream_win) {
+  static constexpr std::string_view testpcx = "assets/good/testEGA16.pcx"sv;
+
+  std::ifstream ifs{testpcx.data(), std::ios_base::binary};
+
+  auto parser = mugen::pcx::PcxParserWin{};
+  ASSERT_NO_THROW(parser.parse(ifs));
+
+  ifs.clear();
+  ifs.seekg(0, std::ios_base::beg);
+  try {
+    auto pcx = parser.parse(ifs);
+    EXPECT_EQ(pcx.width(), 2);
+    EXPECT_EQ(pcx.height(), 2);
+    EXPECT_EQ(pcx.bytes_per_line(), 3);
+    EXPECT_TRUE(pcx.pallete());
+    if (pcx.pallete()) {
+      auto pallete = *(pcx.pallete());
+      EXPECT_EQ(pallete[0].alpha, 0);
+      for (std::size_t i = 0; i < 16; ++i) {
+        EXPECT_EQ(pallete[i].red, i * 0x10 + i);
+        EXPECT_EQ(pallete[i].green, i * 0x10 + i);
+        EXPECT_EQ(pallete[i].blue, i * 0x10 + i);
+      }
+      for (std::size_t i = 16; i < pallete.size(); ++i) {
+        EXPECT_EQ(pallete[i].red, 0);
+        EXPECT_EQ(pallete[i].green, 0);
+        EXPECT_EQ(pallete[i].blue, 0);
+        EXPECT_EQ(pallete[i].alpha, 255);
+      }
+    }
+    EXPECT_TRUE(pcx.indexes());
+    if (pcx.indexes()) {
+      auto indexes = *(pcx.indexes());
+      EXPECT_EQ(indexes.size(), 4);
+      EXPECT_EQ(indexes.size(), pcx.data().size());
+      EXPECT_EQ(indexes, std::vector<std::uint8_t>({0x01, 0x02, 0x04, 0x05}));
+    }
+    std::vector<mugen::pcx::Pcx::Pixel> data(pcx.data().size());
+    data[0].red = 0x11;
+    data[0].green = 0x11;
+    data[0].blue = 0x11;
+    data[0].alpha = 255;
+    data[1].red = 0x22;
+    data[1].green = 0x22;
+    data[1].blue = 0x22;
+    data[1].alpha = 255;
+    data[2].red = 0x44;
+    data[2].green = 0x44;
+    data[2].blue = 0x44;
+    data[2].alpha = 255;
+    data[3].red = 0x55;
+    data[3].green = 0x55;
+    data[3].blue = 0x55;
+    data[3].alpha = 255;
+    for (std::size_t i = 0; i < data.size(); ++i) {
+      EXPECT_EQ(pcx.data()[i].red, data[i].red);
+      EXPECT_EQ(pcx.data()[i].green, data[i].green);
+      EXPECT_EQ(pcx.data()[i].blue, data[i].blue);
+      EXPECT_EQ(pcx.data()[i].alpha, data[i].alpha);
+    }
+  } catch (...) {
+    ASSERT_TRUE(false);
+  }
+}
+
+TEST(test_parse, parse_from_mem_win) {
+  static constexpr std::uint8_t buf[] = {
+      0x00, 0x00, 0x00, 0x08, 0x05, 0x00, 0x05, 0x00, 0x06, 0x00, 0x06, 0x00, 0xFF, 0x7F, 0xFF, 0x7F, 0x00, 0x00, 0x00, 0x11, 0x11, 0x11, 0x22,
+      0x22, 0x22, 0x33, 0x33, 0x33, 0x44, 0x44, 0x44, 0x55, 0x55, 0x55, 0x66, 0x66, 0x66, 0x77, 0x77, 0x77, 0x88, 0x88, 0x88, 0x99, 0x99, 0x99,
+      0xAA, 0xAA, 0xAA, 0xBB, 0xBB, 0xBB, 0xCC, 0xCC, 0xCC, 0xDD, 0xDD, 0xDD, 0xEE, 0xEE, 0xEE, 0xFF, 0xFF, 0xFF, 0x00, 0x01, 0x03, 0x00, 0x00,
+      0x00, 0x00, 0x00, 0x00, 0x00, 0x33, 0x33, 0x33, 0x33, 0x33, 0x33, 0x33, 0x33, 0x33, 0x33, 0x33, 0x33, 0x33, 0x33, 0x33, 0x33, 0x33, 0x33,
+      0x33, 0x33, 0x33, 0x33, 0x33, 0x33, 0x33, 0x33, 0x33, 0x33, 0x33, 0x33, 0x33, 0x33, 0x33, 0x33, 0x33, 0x33, 0x33, 0x33, 0x33, 0x33, 0x33,
+      0x33, 0x33, 0x33, 0x33, 0x33, 0x33, 0x33, 0x33, 0x33, 0x33, 0x33, 0x33, 0x33, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06};
+
+  auto parser = mugen::pcx::PcxParserWin{};
+  ASSERT_NO_THROW(parser.parse(buf, sizeof(buf)));
+
+  try {
+    auto pcx = parser.parse(buf, sizeof(buf));
+    EXPECT_EQ(pcx.width(), 2);
+    EXPECT_EQ(pcx.height(), 2);
+    EXPECT_EQ(pcx.bytes_per_line(), 3);
+    EXPECT_TRUE(pcx.pallete());
+    if (pcx.pallete()) {
+      auto pallete = *(pcx.pallete());
+      EXPECT_EQ(pallete[0].alpha, 0);
+      for (std::size_t i = 0; i < 16; ++i) {
+        EXPECT_EQ(pallete[i].red, i * 0x10 + i);
+        EXPECT_EQ(pallete[i].green, i * 0x10 + i);
+        EXPECT_EQ(pallete[i].blue, i * 0x10 + i);
+      }
+      for (std::size_t i = 16; i < pallete.size(); ++i) {
+        EXPECT_EQ(pallete[i].red, 0);
+        EXPECT_EQ(pallete[i].green, 0);
+        EXPECT_EQ(pallete[i].blue, 0);
+        EXPECT_EQ(pallete[i].alpha, 255);
+      }
+    }
+    EXPECT_TRUE(pcx.indexes());
+    if (pcx.indexes()) {
+      auto indexes = *(pcx.indexes());
+      EXPECT_EQ(indexes.size(), 4);
+      EXPECT_EQ(indexes.size(), pcx.data().size());
+      EXPECT_EQ(indexes, std::vector<std::uint8_t>({0x01, 0x02, 0x04, 0x05}));
+    }
+    std::vector<mugen::pcx::Pcx::Pixel> data(pcx.data().size());
+    data[0].red = 0x11;
+    data[0].green = 0x11;
+    data[0].blue = 0x11;
+    data[0].alpha = 255;
+    data[1].red = 0x22;
+    data[1].green = 0x22;
+    data[1].blue = 0x22;
+    data[1].alpha = 255;
+    data[2].red = 0x44;
+    data[2].green = 0x44;
+    data[2].blue = 0x44;
+    data[2].alpha = 255;
+    data[3].red = 0x55;
+    data[3].green = 0x55;
+    data[3].blue = 0x55;
+    data[3].alpha = 255;
+    for (std::size_t i = 0; i < data.size(); ++i) {
+      EXPECT_EQ(pcx.data()[i].red, data[i].red);
+      EXPECT_EQ(pcx.data()[i].green, data[i].green);
+      EXPECT_EQ(pcx.data()[i].blue, data[i].blue);
+      EXPECT_EQ(pcx.data()[i].alpha, data[i].alpha);
+    }
+  } catch (...) {
+    ASSERT_TRUE(false);
+  }
+
+  std::span<std::uint8_t> s{std::bit_cast<std::uint8_t*>(&buf), sizeof(buf)};
+
+  ASSERT_NO_THROW(parser.parse(s));
+
+  try {
+    auto pcx = parser.parse(s);
+    EXPECT_EQ(pcx.width(), 2);
+    EXPECT_EQ(pcx.height(), 2);
+    EXPECT_EQ(pcx.bytes_per_line(), 3);
+    EXPECT_TRUE(pcx.pallete());
+    if (pcx.pallete()) {
+      auto pallete = *(pcx.pallete());
+      EXPECT_EQ(pallete[0].alpha, 0);
+      for (std::size_t i = 0; i < 16; ++i) {
+        EXPECT_EQ(pallete[i].red, i * 0x10 + i);
+        EXPECT_EQ(pallete[i].green, i * 0x10 + i);
+        EXPECT_EQ(pallete[i].blue, i * 0x10 + i);
+      }
+      for (std::size_t i = 16; i < pallete.size(); ++i) {
+        EXPECT_EQ(pallete[i].red, 0);
+        EXPECT_EQ(pallete[i].green, 0);
+        EXPECT_EQ(pallete[i].blue, 0);
+        EXPECT_EQ(pallete[i].alpha, 255);
+      }
+    }
+    EXPECT_TRUE(pcx.indexes());
+    if (pcx.indexes()) {
+      auto indexes = *(pcx.indexes());
+      EXPECT_EQ(indexes.size(), 4);
+      EXPECT_EQ(indexes.size(), pcx.data().size());
+      EXPECT_EQ(indexes, std::vector<std::uint8_t>({0x01, 0x02, 0x04, 0x05}));
+    }
+    std::vector<mugen::pcx::Pcx::Pixel> data(pcx.data().size());
+    data[0].red = 0x11;
+    data[0].green = 0x11;
+    data[0].blue = 0x11;
+    data[0].alpha = 255;
+    data[1].red = 0x22;
+    data[1].green = 0x22;
+    data[1].blue = 0x22;
+    data[1].alpha = 255;
+    data[2].red = 0x44;
+    data[2].green = 0x44;
+    data[2].blue = 0x44;
+    data[2].alpha = 255;
+    data[3].red = 0x55;
+    data[3].green = 0x55;
+    data[3].blue = 0x55;
+    data[3].alpha = 255;
+    for (std::size_t i = 0; i < data.size(); ++i) {
+      EXPECT_EQ(pcx.data()[i].red, data[i].red);
+      EXPECT_EQ(pcx.data()[i].green, data[i].green);
+      EXPECT_EQ(pcx.data()[i].blue, data[i].blue);
+      EXPECT_EQ(pcx.data()[i].alpha, data[i].alpha);
+    }
+  } catch (...) {
+    ASSERT_TRUE(false);
+  }
 }
