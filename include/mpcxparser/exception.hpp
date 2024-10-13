@@ -24,9 +24,6 @@
 
 #include "mpcxparser/mpcxparser.h"
 
-#include <stdexcept>
-#include <string>
-
 namespace mugen {
 namespace pcx {
 

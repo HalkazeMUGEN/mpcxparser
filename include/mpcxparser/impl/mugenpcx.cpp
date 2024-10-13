@@ -30,7 +30,9 @@
 #include <bit>
 #include <bitset>
 #include <fstream>
-#include <stdexcept>
+#include <ios>
+#include <memory>
+#include <ostream>
 
 namespace mugen {
 namespace pcx {

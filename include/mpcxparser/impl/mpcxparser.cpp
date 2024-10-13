@@ -29,8 +29,9 @@
 
 #include <bit>
 #include <fstream>
+#include <ios>
 #include <limits>
-#include <stdexcept>
+#include <streambuf>
 #include <utility>
 
 namespace mugen {

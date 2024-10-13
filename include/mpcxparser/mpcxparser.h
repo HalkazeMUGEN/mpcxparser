@@ -22,10 +22,17 @@
 #ifndef MPCXPARSER_H__
 #define MPCXPARSER_H__
 
+#include <algorithm>
+#include <array>
+#include <cstddef>
 #include <cstdint>
 #include <filesystem>
 #include <istream>
+#include <optional>
 #include <span>
+#include <stdexcept>
+#include <string>
+#include <vector>
 
 #ifndef MPCXPARSER_PACK
 #if defined(_MSC_VER)
