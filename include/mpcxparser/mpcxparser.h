@@ -30,6 +30,7 @@
 #include <filesystem>
 #include <istream>
 #include <optional>
+#include <ostream>
 #include <span>
 #include <stdexcept>
 #include <string>

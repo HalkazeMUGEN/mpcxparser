@@ -1,7 +1,7 @@
 /**
  * @file mugenpcx.cpp
  * @author Halkaze
- * @date 2024-10-13
+ * @date 2024-10-14
  *
  * @copyright Copyright (c) 2024
  *
@@ -32,7 +32,6 @@
 #include <fstream>
 #include <ios>
 #include <memory>
-#include <ostream>
 
 namespace mugen {
 namespace pcx {
@@ -365,9 +364,12 @@ static inline void write_as_ico32(std::ostream& os, std::size_t width, std::size
 };  // namespace mugen
 
 MPCXPARSER_INLINE void mugen::pcx::Pcx::write_as_pcx(const std::filesystem::path& path) const {
-  static constexpr std::uint8_t PCX_SIGNATURE = 0x0A;
-
   std::ofstream ofs{path, std::ios_base::binary};
+  write_as_pcx(ofs);
+}
+
+MPCXPARSER_INLINE void mugen::pcx::Pcx::write_as_pcx(std::ostream& os) const {
+  static constexpr std::uint8_t PCX_SIGNATURE = 0x0A;
 
   internal::PcxHeader header{
       .signature = PCX_SIGNATURE,
@@ -384,19 +386,22 @@ MPCXPARSER_INLINE void mugen::pcx::Pcx::write_as_pcx(const std::filesystem::path
 
   if (pallete_ && indexes_) {
     header.colorPlanes = 1;
-    internal::write_as_pcx8(ofs, header, *pallete_, *indexes_);
+    internal::write_as_pcx8(os, header, *pallete_, *indexes_);
   } else {
     header.colorPlanes = 3;
-    internal::write_as_pcx32(ofs, header, data_);
+    internal::write_as_pcx32(os, header, data_);
   }
 }
 
 MPCXPARSER_INLINE void mugen::pcx::Pcx::write_as_ico(const std::filesystem::path& path) const {
+  std::ofstream ofs{path, std::ios_base::binary};
+  write_as_ico(ofs);
+}
+
+MPCXPARSER_INLINE void mugen::pcx::Pcx::write_as_ico(std::ostream& os) const {
   if (width_ > 256 || height_ > 256) {
     throw IllegalFormatError{"The PCX is too large for icon."};
   }
-
-  std::ofstream ofs{path, std::ios_base::binary};
 
   // パレット情報とインデックス情報を持っている場合、
   // 出力されるファイルサイズがより小さくなる形式で出力
@@ -404,16 +409,19 @@ MPCXPARSER_INLINE void mugen::pcx::Pcx::write_as_ico(const std::filesystem::path
   // width * height * 4 >= width * height + 256 * 4 => ico 8bit index with 256 pallete
   // width * height * 4 < width * height + 256 * 4  => ico 32bit color
   if (pallete_ && indexes_ && width_ * height_ >= (256 * 4) / 3) {
-    internal::write_as_ico8(ofs, width_, height_, *pallete_, *indexes_);
+    internal::write_as_ico8(os, width_, height_, *pallete_, *indexes_);
   } else {
-    internal::write_as_ico32(ofs, width_, height_, data_);
+    internal::write_as_ico32(os, width_, height_, data_);
   }
 }
 
 MPCXPARSER_INLINE void mugen::pcx::Pcx::write_as_bmp(const std::filesystem::path& path) const {
-  static constexpr char BMP_SIGNATURE[2] = {'B', 'M'};
-
   std::ofstream ofs{path, std::ios_base::binary};
+  write_as_bmp(ofs);
+}
+
+MPCXPARSER_INLINE void mugen::pcx::Pcx::write_as_bmp(std::ostream& os) const {
+  static constexpr char BMP_SIGNATURE[2] = {'B', 'M'};
 
   internal::BmpFileHeader fileHeader{
       .signature = {BMP_SIGNATURE[0], BMP_SIGNATURE[1]},
@@ -430,23 +438,26 @@ MPCXPARSER_INLINE void mugen::pcx::Pcx::write_as_bmp(const std::filesystem::path
       .sizeOfImage = static_cast<std::uint32_t>(width_ * height_ * 4),
   };
 
-  ofs.write(std::bit_cast<char*>(&fileHeader), sizeof(fileHeader));
-  ofs.write(std::bit_cast<char*>(&infoHeader), sizeof(infoHeader));
+  os.write(std::bit_cast<char*>(&fileHeader), sizeof(fileHeader));
+  os.write(std::bit_cast<char*>(&infoHeader), sizeof(infoHeader));
 
   for (std::size_t y = height_ - 1; y < height_; --y) {
     for (std::size_t x = 0; x < width_; ++x) {
       const auto& pixel = data_[y * width_ + x];
 
       char BGRA[] = {static_cast<char>(pixel.blue), static_cast<char>(pixel.green), static_cast<char>(pixel.red), static_cast<char>(pixel.alpha)};
-      ofs.write(BGRA, 4);
+      os.write(BGRA, 4);
     }
   }
 }
 
 MPCXPARSER_INLINE void mugen::pcx::Pcx::write_as_abmp(const std::filesystem::path& path) const {
-  static constexpr char BMP_SIGNATURE[2] = {'B', 'M'};
-
   std::ofstream ofs{path, std::ios_base::binary};
+  write_as_abmp(ofs);
+}
+
+MPCXPARSER_INLINE void mugen::pcx::Pcx::write_as_abmp(std::ostream& os) const {
+  static constexpr char BMP_SIGNATURE[2] = {'B', 'M'};
 
   internal::BmpFileHeader fileHeader{
       .signature = {BMP_SIGNATURE[0], BMP_SIGNATURE[1]},
@@ -467,15 +478,15 @@ MPCXPARSER_INLINE void mugen::pcx::Pcx::write_as_abmp(const std::filesystem::pat
       .bitmaskA = 0xFF000000,
   };
 
-  ofs.write(std::bit_cast<char*>(&fileHeader), sizeof(fileHeader));
-  ofs.write(std::bit_cast<char*>(&infoHeader), sizeof(infoHeader));
+  os.write(std::bit_cast<char*>(&fileHeader), sizeof(fileHeader));
+  os.write(std::bit_cast<char*>(&infoHeader), sizeof(infoHeader));
 
   for (std::size_t y = height_ - 1; y < height_; --y) {
     for (std::size_t x = 0; x < width_; ++x) {
       const auto& pixel = data_[y * width_ + x];
 
       char BGRA[] = {static_cast<char>(pixel.blue), static_cast<char>(pixel.green), static_cast<char>(pixel.red), static_cast<char>(pixel.alpha)};
-      ofs.write(BGRA, 4);
+      os.write(BGRA, 4);
     }
   }
 }
