@@ -1,7 +1,7 @@
 /**
  * @file mugenpcx.hpp
  * @author Halkaze
- * @date 2024-10-13
+ * @date 2024-10-14
  *
  * @copyright Copyright (c) 2024
  *
@@ -36,6 +36,8 @@ class Pcx {
     std::uint8_t alpha;
 
     inline Pixel() noexcept : red{0}, green{0}, blue{0}, alpha{255} {}
+
+    auto operator<=>(const Pixel&) const noexcept = default;
   };
 
  private:
@@ -64,6 +66,8 @@ class Pcx {
           return data;
         }()} {}
 
+  auto operator<=>(const Pcx&) const noexcept = default;
+
   inline std::size_t width() const noexcept { return width_; }
   inline std::size_t height() const noexcept { return height_; }
 
@@ -76,15 +80,23 @@ class Pcx {
 
   // pcx形式として出力する
   void write_as_pcx(const std::filesystem::path& path) const;
+  void write_as_pcx(std::ostream& os) const;
+
+  // パレット部のないpcx形式として出力する
+  void write_as_pcx_without_pallete(const std::filesystem::path& path) const;
+  void write_as_pcx_without_pallete(std::ostream& os) const;
 
   // 透明度付きico形式として出力する
   void write_as_ico(const std::filesystem::path& path) const;
+  void write_as_ico(std::ostream& os) const;
 
   // bmp形式（Windows3.0形式 = BITMAPFILE）として出力する
   void write_as_bmp(const std::filesystem::path& path) const;
+  void write_as_bmp(std::ostream& os) const;
 
   // 透明度付きbmp形式（Windows95形式 = BITMAPV4）として出力する
   void write_as_abmp(const std::filesystem::path& path) const;
+  void write_as_abmp(std::ostream& os) const;
 };
 
 namespace internal {

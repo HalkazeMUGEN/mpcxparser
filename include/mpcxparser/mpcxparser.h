@@ -1,7 +1,7 @@
 /**
  * @file mpcxparser.h
  * @author Halkaze
- * @date 2024-10-13
+ * @date 2024-10-14
  *
  * @copyright Copyright (c) 2024
  *
@@ -24,11 +24,13 @@
 
 #include <algorithm>
 #include <array>
+#include <compare>
 #include <cstddef>
 #include <cstdint>
 #include <filesystem>
 #include <istream>
 #include <optional>
+#include <ostream>
 #include <span>
 #include <stdexcept>
 #include <string>
