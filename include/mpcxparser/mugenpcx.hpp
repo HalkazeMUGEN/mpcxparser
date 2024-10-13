@@ -80,15 +80,19 @@ class Pcx {
 
   // pcx形式として出力する
   void write_as_pcx(const std::filesystem::path& path) const;
+  void write_as_pcx(std::ostream& os) const;
 
   // 透明度付きico形式として出力する
   void write_as_ico(const std::filesystem::path& path) const;
+  void write_as_ico(std::ostream& os) const;
 
   // bmp形式（Windows3.0形式 = BITMAPFILE）として出力する
   void write_as_bmp(const std::filesystem::path& path) const;
+  void write_as_bmp(std::ostream& os) const;
 
   // 透明度付きbmp形式（Windows95形式 = BITMAPV4）として出力する
   void write_as_abmp(const std::filesystem::path& path) const;
+  void write_as_abmp(std::ostream& os) const;
 };
 
 namespace internal {
