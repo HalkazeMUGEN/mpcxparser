@@ -150,7 +150,8 @@ static inline void pcx_encode(std::vector<std::uint8_t>::const_iterator& begin,
 static inline void write_as_pcx8(std::ostream& os,
                                  const PcxHeader& header,
                                  const std::array<Pcx::Pixel, 256>& pallete,
-                                 const std::vector<std::uint8_t>& indexes) {
+                                 const std::vector<std::uint8_t>& indexes,
+                                 bool outputPalleteData) {
   os.write(std::bit_cast<char*>(&header), sizeof(header));
 
   std::size_t maxLength = 0;
@@ -180,13 +181,17 @@ static inline void write_as_pcx8(std::ostream& os,
     }
   }
 
-  internal::PcxPallete pcxPallete{.marker = PAL_MARKER};
-  for (std::size_t i = 0; i < pallete.size(); ++i) {
-    pcxPallete.pal[i].red = pallete[i].red;
-    pcxPallete.pal[i].green = pallete[i].green;
-    pcxPallete.pal[i].blue = pallete[i].blue;
+  if (outputPalleteData) {
+    internal::PcxPallete pcxPallete{.marker = PAL_MARKER};
+    for (std::size_t i = 0; i < pallete.size(); ++i) {
+      pcxPallete.pal[i].red = pallete[i].red;
+      pcxPallete.pal[i].green = pallete[i].green;
+      pcxPallete.pal[i].blue = pallete[i].blue;
+    }
+    os.write(std::bit_cast<char*>(&pcxPallete), sizeof(pcxPallete));
+  } else {
+    os.write(std::bit_cast<char*>(&PAL_MARKER), 1);
   }
-  os.write(std::bit_cast<char*>(&pcxPallete), sizeof(pcxPallete));
 }
 
 static inline void write_as_pcx32(std::ostream& os, const PcxHeader& header, const std::vector<Pcx::Pixel>& data) {
@@ -386,7 +391,37 @@ MPCXPARSER_INLINE void mugen::pcx::Pcx::write_as_pcx(std::ostream& os) const {
 
   if (pallete_ && indexes_) {
     header.colorPlanes = 1;
-    internal::write_as_pcx8(os, header, *pallete_, *indexes_);
+    internal::write_as_pcx8(os, header, *pallete_, *indexes_, true);
+  } else {
+    header.colorPlanes = 3;
+    internal::write_as_pcx32(os, header, data_);
+  }
+}
+
+MPCXPARSER_INLINE void mugen::pcx::Pcx::write_as_pcx_without_pallete(const std::filesystem::path& path) const {
+  std::ofstream ofs{path, std::ios_base::binary};
+  write_as_pcx_without_pallete(ofs);
+}
+
+MPCXPARSER_INLINE void mugen::pcx::Pcx::write_as_pcx_without_pallete(std::ostream& os) const {
+  static constexpr std::uint8_t PCX_SIGNATURE = 0x0A;
+
+  internal::PcxHeader header{
+      .signature = PCX_SIGNATURE,
+      .version = 5,
+      .encoding = 1,
+      .bitsPerPixel = 8,
+      .endX = static_cast<std::uint16_t>(width_ - 1),
+      .endY = static_cast<std::uint16_t>(height_ - 1),
+      .hRes = static_cast<std::uint16_t>(width_),
+      .vRes = static_cast<std::uint16_t>(height_),
+      .bytesPerLine = static_cast<std::uint16_t>(bytesPerLine_),
+      .palleteMode = 1,
+  };
+
+  if (pallete_ && indexes_) {
+    header.colorPlanes = 1;
+    internal::write_as_pcx8(os, header, *pallete_, *indexes_, false);
   } else {
     header.colorPlanes = 3;
     internal::write_as_pcx32(os, header, data_);
