@@ -18,7 +18,7 @@ include(FetchContent)
 FetchContent_Declare(
   mpcxparser
   GIT_REPOSITORY https://github.com/HalkazeMUGEN/mpcxparser.git
-  GIT_TAG v1.0.0
+  GIT_TAG v1.0.1
 )
 FetchContent_MakeAvailable(mpcxparser)
 
