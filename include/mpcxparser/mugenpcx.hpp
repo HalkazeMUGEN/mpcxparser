@@ -1,7 +1,7 @@
 /**
  * @file mugenpcx.hpp
  * @author Halkaze
- * @date 2024-10-13
+ * @date 2024-10-14
  *
  * @copyright Copyright (c) 2024
  *
@@ -36,6 +36,8 @@ class Pcx {
     std::uint8_t alpha;
 
     inline Pixel() noexcept : red{0}, green{0}, blue{0}, alpha{255} {}
+
+    auto operator<=>(const Pixel&) const noexcept = default;
   };
 
  private:
@@ -63,6 +65,8 @@ class Pcx {
           std::transform(indexes_->cbegin(), indexes_->cend(), data.begin(), [this](std::uint8_t index) { return (*pallete_)[index]; });
           return data;
         }()} {}
+
+  auto operator<=>(const Pcx&) const noexcept = default;
 
   inline std::size_t width() const noexcept { return width_; }
   inline std::size_t height() const noexcept { return height_; }
