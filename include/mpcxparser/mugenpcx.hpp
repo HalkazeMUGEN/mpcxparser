@@ -82,6 +82,10 @@ class Pcx {
   void write_as_pcx(const std::filesystem::path& path) const;
   void write_as_pcx(std::ostream& os) const;
 
+  // パレット部のないpcx形式として出力する
+  void write_as_pcx_without_pallete(const std::filesystem::path& path) const;
+  void write_as_pcx_without_pallete(std::ostream& os) const;
+
   // 透明度付きico形式として出力する
   void write_as_ico(const std::filesystem::path& path) const;
   void write_as_ico(std::ostream& os) const;
