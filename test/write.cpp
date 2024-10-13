@@ -1,7 +1,7 @@
 /**
  * @file write.cpp
  * @author Halkaze
- * @date 2024-10-13
+ * @date 2024-10-14
  *
  * @copyright Copyright (c) 2024
  *
@@ -23,6 +23,8 @@
 
 #include <mpcxparser/mpcxparser.h>
 
+#include <ios>
+#include <sstream>
 #include <string_view>
 #include <utility>
 
@@ -328,4 +330,52 @@ TEST(test_write, write_as_abmp) {
   mugen::pcx::Pcx pcx{width, height, width, std::move(pallete), std::move(indexes)};
 
   EXPECT_NO_THROW(pcx.write_as_abmp(path));
+}
+
+TEST(test_write, write_to_stream_win) {
+  static constexpr std::size_t width = 2;
+  static constexpr std::size_t height = 2;
+
+  std::vector<mugen::pcx::Pcx::Pixel> data(width * height);
+
+  for (std::size_t i = 0; i < data.size(); ++i) {
+    data[i].red = static_cast<std::uint8_t>(i + 0x00);
+    data[i].green = static_cast<std::uint8_t>(i + 0x10);
+    data[i].blue = static_cast<std::uint8_t>(i + 0x20);
+    data[i].alpha = static_cast<std::uint8_t>(i + 0x30);
+  }
+
+  mugen::pcx::Pcx pcx{width, height, width, std::move(data)};
+
+  std::stringstream ss{};
+
+  EXPECT_NO_THROW(pcx.write_as_pcx(ss));
+
+  ss.seekg(0, std::ios_base::beg);
+
+  auto parser = mugen::pcx::PcxParserWin{};
+  ASSERT_NO_THROW(parser.parse(ss));
+
+  ss.seekg(0, std::ios_base::beg);
+
+  auto saved = parser.parse(ss);
+
+  EXPECT_EQ(saved.width(), width);
+  EXPECT_EQ(saved.height(), height);
+  EXPECT_EQ(saved.bytes_per_line(), width);
+
+  EXPECT_FALSE(saved.pallete());
+  EXPECT_FALSE(saved.indexes());
+
+  EXPECT_EQ(saved.data().size(), saved.width() * saved.height());
+  for (std::size_t y = 0; y < saved.height(); ++y) {
+    for (std::size_t x = 0; x < saved.width(); ++x) {
+      std::size_t index = y * saved.width() + x;
+      auto&& pixel = saved.data()[index];
+      EXPECT_EQ(pixel.red, static_cast<std::uint8_t>(index + 0x00));
+      EXPECT_EQ(pixel.green, static_cast<std::uint8_t>(index + 0x10));
+      EXPECT_EQ(pixel.blue, static_cast<std::uint8_t>(index + 0x20));
+      EXPECT_EQ(pixel.alpha, 255);
+    }
+  }
 }
